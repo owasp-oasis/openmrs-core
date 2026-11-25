@@ -1301,14 +1301,14 @@ public class PatientServiceImpl extends BaseOpenmrsService implements PatientSer
 		String defaultPIV = Context.getAdministrationService()
 		        .getGlobalProperty(OpenmrsConstants.GLOBAL_PROPERTY_DEFAULT_PATIENT_IDENTIFIER_VALIDATOR, "");
 
-		try {
-			return identifierValidators.get(Class.forName(defaultPIV));
-		} catch (ClassNotFoundException e) {
-			log.error("Global Property " + OpenmrsConstants.GLOBAL_PROPERTY_DEFAULT_PATIENT_IDENTIFIER_VALIDATOR
-			        + " not set to an actual class.",
-			    e);
-			return identifierValidators.get(LuhnIdentifierValidator.class);
+		for (Map.Entry<Class<? extends IdentifierValidator>, IdentifierValidator> entry : identifierValidators.entrySet()) {
+			if (entry.getKey().getName().equals(defaultPIV)) {
+				return entry.getValue();
+			}
 		}
+		log.error("Global Property " + OpenmrsConstants.GLOBAL_PROPERTY_DEFAULT_PATIENT_IDENTIFIER_VALIDATOR
+		        + " not set to a registered identifier validator.");
+		return defaultPIV.isEmpty() ? identifierValidators.get(LuhnIdentifierValidator.class) : null;
 	}
 
 	/**
