@@ -492,7 +492,7 @@ public class DatabaseUpdater {
 			url = url + "&sessionVariables=default_storage_engine=InnoDB";
 		}
 
-		Class.forName(driver);
+		DatabaseUtil.loadDatabaseDriver(url, driver);
 		return DriverManager.getConnection(url, username, password);
 	}
 
