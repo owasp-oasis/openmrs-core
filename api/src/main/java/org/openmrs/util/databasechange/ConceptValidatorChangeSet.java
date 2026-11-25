@@ -476,13 +476,10 @@ public class ConceptValidatorChangeSet implements CustomTaskChange {
 	private boolean isNameUniqueInLocale(JdbcConnection connection, ConceptName conceptName, int conceptId) {
 
 		int duplicates = getInt(connection,
-		    "SELECT count(*) FROM concept_name cn, concept c WHERE cn.concept_id = c.concept_id  AND (cn.concept_name_type = '"
-		            + ConceptNameType.FULLY_SPECIFIED
-		            + "' OR cn.locale_preferred = true) AND cn.voided = false AND cn.name = '"
-		            + HibernateUtil.escapeSqlWildcards(conceptName.getName(), connection.getUnderlyingConnection())
-		            + "' AND cn.locale = '" + HibernateUtil.escapeSqlWildcards(conceptName.getLocale().toString(),
-		                connection.getUnderlyingConnection())
-		            + "' AND c.retired = false AND c.concept_id != " + conceptId);
+		    "SELECT count(*) FROM concept_name cn, concept c WHERE cn.concept_id = c.concept_id  AND (cn.concept_name_type = ?"
+		            + " OR cn.locale_preferred = true) AND cn.voided = false AND cn.name = ?"
+		            + " AND cn.locale = ? AND c.retired = false AND c.concept_id != ?",
+		    ConceptNameType.FULLY_SPECIFIED.toString(), conceptName.getName(), conceptName.getLocale().toString(), conceptId);
 
 		return duplicates == 0;
 	}
@@ -725,12 +722,15 @@ public class ConceptValidatorChangeSet implements CustomTaskChange {
 	 * @param sql the sql statement to execute
 	 * @return integer resulting from the execution of the sql statement
 	 */
-	private int getInt(JdbcConnection connection, String sql) {
-		Statement stmt = null;
+	private int getInt(JdbcConnection connection, String sql, Object... parameters) {
+		PreparedStatement stmt = null;
 		int result = 0;
 		try {
-			stmt = connection.createStatement();
-			ResultSet rs = stmt.executeQuery(sql);
+			stmt = connection.prepareStatement(sql);
+			for (int i = 0; i < parameters.length; i++) {
+				stmt.setObject(i + 1, parameters[i]);
+			}
+			ResultSet rs = stmt.executeQuery();
 
 			if (rs.next()) {
 				result = rs.getInt(1);
